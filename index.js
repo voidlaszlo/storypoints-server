@@ -3,6 +3,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const { EVENTS } = require("./constants");
+const { Emit } = require("./Emit");
 
 const app = express();
 app.use(cors());
@@ -18,16 +19,13 @@ const io = new Server(server, {
 const state = {};
 
 io.on("connection", (socket) => {
-  socket.on("disconnect", () => {
-    console.log(`User Disconnected`);
-  });
-
   socket.on(EVENTS.JOIN_ROOM, (roomId) => {
     socket.join(roomId);
 
     if (state[roomId] !== undefined) {
-      io.to(socket.id).emit(
-        EVENTS.POST_TITLE,
+      Emit.postTitle(
+        io,
+        socket.id,
         state[roomId].dataSets[state[roomId].dataSets.length - 1].title
       );
     }
@@ -52,19 +50,20 @@ io.on("connection", (socket) => {
       data: [],
     });
 
-    io.to(socket.id).emit(EVENTS.POST_TITLE, title);
+    Emit.postTitle(io, socket.id, title);
   });
 
   socket.on(EVENTS.GET_STATE, () => {
-    io.to(socket.id).emit(
-      EVENTS.POST_DATA,
+    Emit.postData(
+      io,
+      socket.id,
       state[socket.id].dataSets[state[socket.id].dataSets.length - 1].data
     );
   });
 
   socket.on(EVENTS.CLEAR_STATE, () => {
-    io.to(socket.id).emit(EVENTS.POST_DATA, []);
-    io.to(socket.id).emit(EVENTS.POST_TITLE, "");
+    Emit.postData(io, socket.id, []);
+    Emit.postTitle(io, socket.id, "");
   });
 
   // TODO: delete state[socket.id];
