@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const { EVENTS } = require("./constants");
 
 const app = express();
 app.use(cors());
@@ -14,12 +15,6 @@ const io = new Server(server, {
   },
 });
 
-const JOIN_ROOM_EVENT = "JOIN_ROOM";
-const POST_DATA_EVENT = "POST_DATA";
-const POST_TITLE_EVENT = "POST_TITLE";
-const GET_STATE_EVENT = "GET_STATE";
-const CLEAR_STATE_EVENT = "CLEAR_STATE";
-
 const state = {};
 
 io.on("connection", (socket) => {
@@ -27,25 +22,25 @@ io.on("connection", (socket) => {
     console.log(`User Disconnected`);
   });
 
-  socket.on(JOIN_ROOM_EVENT, (roomId) => {
+  socket.on(EVENTS.JOIN_ROOM, (roomId) => {
     socket.join(roomId);
 
     if (state[roomId] !== undefined) {
       io.to(socket.id).emit(
-        POST_TITLE_EVENT,
+        EVENTS.POST_TITLE,
         state[roomId].dataSets[state[roomId].dataSets.length - 1].title
       );
     }
   });
 
-  socket.on(POST_DATA_EVENT, (selected, room) => {
+  socket.on(EVENTS.POST_DATA, (selected, room) => {
     state[room].dataSets[state[room].dataSets.length - 1].data.push({
       socketId: socket.id,
       selected,
     });
   });
 
-  socket.on(POST_TITLE_EVENT, (title) => {
+  socket.on(EVENTS.POST_TITLE, (title) => {
     if (state[socket.id] === undefined) {
       state[socket.id] = {
         dataSets: [],
@@ -57,20 +52,19 @@ io.on("connection", (socket) => {
       data: [],
     });
 
-    io.to(socket.id).emit(POST_TITLE_EVENT, title);
+    io.to(socket.id).emit(EVENTS.POST_TITLE, title);
   });
 
-  socket.on(GET_STATE_EVENT, () => {
+  socket.on(EVENTS.GET_STATE, () => {
     io.to(socket.id).emit(
-      POST_DATA_EVENT,
+      EVENTS.POST_DATA,
       state[socket.id].dataSets[state[socket.id].dataSets.length - 1].data
     );
   });
 
-  socket.on(CLEAR_STATE_EVENT, () => {
-    console.log(state[socket.id]);
-    io.to(socket.id).emit(POST_DATA_EVENT, []);
-    io.to(socket.id).emit(POST_TITLE_EVENT, "");
+  socket.on(EVENTS.CLEAR_STATE, () => {
+    io.to(socket.id).emit(EVENTS.POST_DATA, []);
+    io.to(socket.id).emit(EVENTS.POST_TITLE, "");
   });
 
   // TODO: delete state[socket.id];

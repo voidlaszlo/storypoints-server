@@ -1,0 +1,11 @@
+const EVENTS = {
+  JOIN_ROOM: "JOIN_ROOM",
+  POST_DATA: "POST_DATA",
+  POST_TITLE: "POST_TITLE",
+  GET_STATE: "GET_STATE",
+  CLEAR_STATE: "CLEAR_STATE",
+};
+
+module.exports = {
+  EVENTS,
+};
