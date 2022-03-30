@@ -20,63 +20,60 @@ const POST_TITLE_EVENT = "POST_TITLE";
 const GET_STATE_EVENT = "GET_STATE";
 const CLEAR_STATE_EVENT = "CLEAR_STATE";
 
-const savedStates = [];
-
-/*
-{
-  uuid: {
-    dataSets: [
-      {
-        title:'',
-        data: [
-          {
-            socketId: '',
-            selected:
-          }
-        ]
-      }
-    ]
-  }
-}
-
-*/
-const state = {
-  title: "",
-};
+const state = {};
 
 io.on("connection", (socket) => {
-  console.log(`User Connected: ${socket.id}`);
-
-  socket.on("disconnect", (socket) => {
+  socket.on("disconnect", () => {
     console.log(`User Disconnected`);
   });
 
   socket.on(JOIN_ROOM_EVENT, (roomId) => {
     socket.join(roomId);
+
+    if (state[roomId] !== undefined) {
+      io.to(socket.id).emit(
+        POST_TITLE_EVENT,
+        state[roomId].dataSets[state[roomId].dataSets.length - 1].title
+      );
+    }
   });
 
   socket.on(POST_DATA_EVENT, (selected, room) => {
-    state[room].data.push({ socketId: socket.id, selected });
+    state[room].dataSets[state[room].dataSets.length - 1].data.push({
+      socketId: socket.id,
+      selected,
+    });
   });
 
   socket.on(POST_TITLE_EVENT, (title) => {
-    state.title = title;
-    state[socket.id] = {
+    if (state[socket.id] === undefined) {
+      state[socket.id] = {
+        dataSets: [],
+      };
+    }
+
+    state[socket.id].dataSets.push({
+      title,
       data: [],
-    };
-    io.to(socket.id).emit(POST_TITLE_EVENT, state.title);
+    });
+
+    io.to(socket.id).emit(POST_TITLE_EVENT, title);
   });
 
   socket.on(GET_STATE_EVENT, () => {
-    io.to(socket.id).emit(POST_DATA_EVENT, state[socket.id].data);
+    io.to(socket.id).emit(
+      POST_DATA_EVENT,
+      state[socket.id].dataSets[state[socket.id].dataSets.length - 1].data
+    );
   });
 
   socket.on(CLEAR_STATE_EVENT, () => {
-    //savedStates[socket.id] = { data: state[socket.id].data };
-    //delete state[socket.id];
+    console.log(state[socket.id]);
     io.to(socket.id).emit(POST_DATA_EVENT, []);
     io.to(socket.id).emit(POST_TITLE_EVENT, "");
   });
+
+  // TODO: delete state[socket.id];
 });
 
 server.listen(3001, () => {
